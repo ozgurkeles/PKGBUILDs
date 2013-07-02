@@ -1,0 +1,103 @@
+From d5855dcf56e07b316e839309b102dc9ef9236e5d Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=C3=96zg=C3=BCr=20Kele=C5=9F?= <ozgur.keles@ries.com.tr>
+Date: Tue, 2 Jul 2013 12:20:12 +0300
+Subject: [PATCH] =?UTF-8?q?mxs-auart=5Fadd=5Fmax485=20archlinuxarm=20kerne?=
+ =?UTF-8?q?l=20i=C3=A7in=20proc=20dosya=20sistemine=20unique-id=20eklendi.?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ drivers/tty/serial/Kconfig     |  7 +++++++
+ drivers/tty/serial/mxs-auart.c | 22 ++++++++++++++++++++++
+ 2 files changed, 29 insertions(+)
+
+diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
+index 2a53be5..a715583 100644
+--- a/drivers/tty/serial/Kconfig
++++ b/drivers/tty/serial/Kconfig
+@@ -1367,6 +1367,13 @@ config SERIAL_MXS_AUART
+ 	help
+ 	  This driver supports the MXS Application UART (AUART) port.
+ 
++config SERIAL_MXS_AUART_MAX485
++	bool "MXS AUART MAX485 support"
++	default y
++	depends on SERIAL_MXS_AUART
++	help
++	  This configuration supports the MXS Application UART (AUART) port on MAX485.
++
+ config SERIAL_MXS_AUART_CONSOLE
+ 	bool "MXS AUART console support"
+ 	depends on SERIAL_MXS_AUART=y
+diff --git a/drivers/tty/serial/mxs-auart.c b/drivers/tty/serial/mxs-auart.c
+index 6db3baa..4d9ee6a 100644
+--- a/drivers/tty/serial/mxs-auart.c
++++ b/drivers/tty/serial/mxs-auart.c
+@@ -122,6 +122,10 @@ struct mxs_auart_port {
+ 
+ 	unsigned int irq;
+ 
++#ifdef CONFIG_SERIAL_MXS_AUART_MAX485
++	unsigned int tx_count;
++#endif
++
+ 	struct clk *clk;
+ 	struct device *dev;
+ };
+@@ -138,6 +142,9 @@ static inline void mxs_auart_tx_chars(struct mxs_auart_port *s)
+ 		 AUART_STAT_TXFF)) {
+ 		if (s->port.x_char) {
+ 			s->port.icount.tx++;
++#ifdef CONFIG_SERIAL_MXS_AUART_MAX485
++			s->tx_count++;
++#endif
+ 			writel(s->port.x_char,
+ 				     s->port.membase + AUART_DATA);
+ 			s->port.x_char = 0;
+@@ -145,6 +152,9 @@ static inline void mxs_auart_tx_chars(struct mxs_auart_port *s)
+ 		}
+ 		if (!uart_circ_empty(xmit) && !uart_tx_stopped(&s->port)) {
+ 			s->port.icount.tx++;
++#ifdef CONFIG_SERIAL_MXS_AUART_MAX485
++			s->tx_count++;
++#endif
+ 			writel(xmit->buf[xmit->tail],
+ 				     s->port.membase + AUART_DATA);
+ 			xmit->tail = (xmit->tail + 1) & (UART_XMIT_SIZE - 1);
+@@ -175,6 +185,9 @@ static void mxs_auart_rx_char(struct mxs_auart_port *s)
+ 	stat = readl(s->port.membase + AUART_STAT);
+ 
+ 	flag = TTY_NORMAL;
++#ifdef CONFIG_SERIAL_MXS_AUART_MAX485
++	if (s->tx_count == 0) {
++#endif
+ 	s->port.icount.rx++;
+ 
+ 	if (stat & AUART_STAT_BERR) {
+@@ -206,6 +219,11 @@ static void mxs_auart_rx_char(struct mxs_auart_port *s)
+ 		goto out;
+ 
+ 	uart_insert_char(&s->port, stat, AUART_STAT_OERR, c, flag);
++#ifdef CONFIG_SERIAL_MXS_AUART_MAX485
++	} else {
++		s->tx_count--;
++	}
++#endif
+ out:
+ 	writel(stat, s->port.membase + AUART_STAT);
+ }
+@@ -760,6 +778,10 @@ static int __devinit mxs_auart_probe(struct platform_device *pdev)
+ 	if (ret)
+ 		goto out_free_clk;
+ 
++#ifdef CONFIG_SERIAL_MXS_AUART_MAX485
++	s->tx_count = 0;
++#endif
++
+ 	platform_set_drvdata(pdev, s);
+ 
+ 	auart_port[s->port.line] = s;
+-- 
+1.8.3.1
+

@@ -23,7 +23,9 @@ source=("http://www.kernel.org/pub/linux/kernel/v3.0/linux-${_basekernel}.tar.xz
         '0001-MXS-imx23-olinuxino-Add-i2c-support.patch'
         '0001-mmc-mxs-mmc-Add-support-for-non-removable-cards.patch'
         '0002-ARM-dts-imx23-olinuxino-Set-the-sdcard-as-non-remova.patch'
-        '0001-rtl8192cu.patch')
+        '0001-rtl8192cu.patch'
+        '0001-mach-mxs-ocotp_proc.patch'
+        '0001-mxs-auart_add_max485.patch')
 md5sums=('21223369d682bcf44bcdfe1521095983'
          'b88977838a2a52ff4fb4e82b30726496'
          '2e55d4387dade59532393a3e882f543f'
@@ -32,7 +34,9 @@ md5sums=('21223369d682bcf44bcdfe1521095983'
          'acc5de524247ec1aff5c9af6a486652f'
          '8a034a737c554cc4ef99ca3854ad56d5'
          'ef27d61a159fa9fcba6e7b93e9f630f2'
-         '3073241240a0536d53408bd94dd5644a')
+         '3073241240a0536d53408bd94dd5644a'
+         '9a6a8307894906b9d2148a34d474d7b3'
+         'b6fc05f5f3e178e94d71129dc11e27aa')
 
 build() {
   cd "${srcdir}/linux-${_basekernel}"
@@ -53,6 +57,8 @@ build() {
   patch -Np1 -i "${srcdir}/0001-rtl8192cu.patch"
   patch -Np1 -i "${srcdir}/0001-mmc-mxs-mmc-Add-support-for-non-removable-cards.patch"
   patch -Np1 -i "${srcdir}/0002-ARM-dts-imx23-olinuxino-Set-the-sdcard-as-non-remova.patch"
+  patch -Np1 -i "${srcdir}/0001-mach-mxs-ocotp_proc.patch"
+  patch -Np1 -i "${srcdir}/0001-mxs-auart_add_max485.patch"
   
   cat "${srcdir}/config" > ./.config
 
