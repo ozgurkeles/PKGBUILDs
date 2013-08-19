@@ -1,0 +1,205 @@
+From b2f265a07134600a8b5725fbee2325dfb63a3bb5 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=C3=96zg=C3=BCr=20Kele=C5=9F?= <ozgur.keles@ries.com.tr>
+Date: Thu, 15 Aug 2013 19:06:59 +0300
+Subject: [PATCH] mxs-auart add max485 de
+
+---
+ arch/arm/boot/dts/imx23-olinuxino.dts |  2 +-
+ arch/arm/boot/dts/imx23.dtsi          | 12 ++++++++
+ drivers/tty/serial/Kconfig            | 10 ++++++-
+ drivers/tty/serial/mxs-auart.c        | 52 ++++++++++++++++++++++++++++++++---
+ 4 files changed, 70 insertions(+), 6 deletions(-)
+
+diff --git a/arch/arm/boot/dts/imx23-olinuxino.dts b/arch/arm/boot/dts/imx23-olinuxino.dts
+index 1e40dcd..6804f1f 100644
+--- a/arch/arm/boot/dts/imx23-olinuxino.dts
++++ b/arch/arm/boot/dts/imx23-olinuxino.dts
+@@ -74,7 +74,7 @@
+ 
+ 			auart0: serial@8006c000 {
+ 				pinctrl-names = "default";
+-				pinctrl-0 = <&auart0_2pins_a>;
++				pinctrl-0 = <&auart0_3pins_a>;
+ 				status = "okay";
+ 			};
+ 
+diff --git a/arch/arm/boot/dts/imx23.dtsi b/arch/arm/boot/dts/imx23.dtsi
+index 746c92c..8271ed7 100644
+--- a/arch/arm/boot/dts/imx23.dtsi
++++ b/arch/arm/boot/dts/imx23.dtsi
+@@ -155,6 +155,18 @@
+ 					fsl,pull-up = <0>;
+ 				};
+ 
++				auart0_3pins_a: auart0-3pins@0 {
++					reg = <0>;
++					fsl,pinmux-ids = <
++						0x01e2 /* MX23_PAD_I2C_SCL__AUART1_TX */
++						0x01f2 /* MX23_PAD_I2C_SDA__AUART1_RX */
++						0x0183 /* MX23_PAD_GPMI_WRN__GPIO_0_24 */
++					>;
++					fsl,drive-strength = <0>;
++					fsl,voltage = <1>;
++					fsl,pull-up = <0>;
++				};
++
+ 				gpmi_pins_a: gpmi-nand@0 {
+ 					reg = <0>;
+ 					fsl,pinmux-ids = <
+diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
+index a715583..4e23924 100644
+--- a/drivers/tty/serial/Kconfig
++++ b/drivers/tty/serial/Kconfig
+@@ -1370,7 +1370,15 @@ config SERIAL_MXS_AUART
+ config SERIAL_MXS_AUART_MAX485
+ 	bool "MXS AUART MAX485 support"
+ 	default y
+-	depends on SERIAL_MXS_AUART
++	depends on (SERIAL_MXS_AUART && GENERIC_GPIO)
++	help
++	  This configuration supports the MXS Application UART (AUART) port on MAX485.
++
++config SERIAL_MXS_AUART_MAX485_GPIO
++	int "MXS AUART MAX485 DE gpio"
++	default 24
++	depends on SERIAL_MXS_AUART_MAX485
++	range 0 256
+ 	help
+ 	  This configuration supports the MXS Application UART (AUART) port on MAX485.
+ 
+diff --git a/drivers/tty/serial/mxs-auart.c b/drivers/tty/serial/mxs-auart.c
+index 4d9ee6a..f69770b 100644
+--- a/drivers/tty/serial/mxs-auart.c
++++ b/drivers/tty/serial/mxs-auart.c
+@@ -34,6 +34,7 @@
+ #include <linux/io.h>
+ #include <linux/pinctrl/consumer.h>
+ #include <linux/of_device.h>
++#include <linux/gpio.h>
+ 
+ #include <asm/cacheflush.h>
+ 
+@@ -124,6 +125,7 @@ struct mxs_auart_port {
+ 
+ #ifdef CONFIG_SERIAL_MXS_AUART_MAX485
+ 	unsigned int tx_count;
++	int de_err;
+ #endif
+ 
+ 	struct clk *clk;
+@@ -134,6 +136,16 @@ static void mxs_auart_stop_tx(struct uart_port *u);
+ 
+ #define to_auart_port(u) container_of(u, struct mxs_auart_port, port)
+ 
++static inline void mxs_auart_set_de(struct mxs_auart_port *s, int value)
++{
++	static int last_value = -1;
++
++	if (s->de_err == 0 && last_value != value) {
++		last_value = value;
++		gpio_set_value(CONFIG_SERIAL_MXS_AUART_MAX485_GPIO, last_value);
++	}
++}
++
+ static inline void mxs_auart_tx_chars(struct mxs_auart_port *s)
+ {
+ 	struct circ_buf *xmit = &s->port.state->xmit;
+@@ -144,6 +156,7 @@ static inline void mxs_auart_tx_chars(struct mxs_auart_port *s)
+ 			s->port.icount.tx++;
+ #ifdef CONFIG_SERIAL_MXS_AUART_MAX485
+ 			s->tx_count++;
++			mxs_auart_set_de(s, 1);
+ #endif
+ 			writel(s->port.x_char,
+ 				     s->port.membase + AUART_DATA);
+@@ -154,6 +167,7 @@ static inline void mxs_auart_tx_chars(struct mxs_auart_port *s)
+ 			s->port.icount.tx++;
+ #ifdef CONFIG_SERIAL_MXS_AUART_MAX485
+ 			s->tx_count++;
++			mxs_auart_set_de(s, 1);
+ #endif
+ 			writel(xmit->buf[xmit->tail],
+ 				     s->port.membase + AUART_DATA);
+@@ -222,6 +236,9 @@ static void mxs_auart_rx_char(struct mxs_auart_port *s)
+ #ifdef CONFIG_SERIAL_MXS_AUART_MAX485
+ 	} else {
+ 		s->tx_count--;
++		if (s->tx_count == 0) {
++			mxs_auart_set_de(s, 0);
++		}
+ 	}
+ #endif
+ out:
+@@ -451,6 +468,11 @@ static int mxs_auart_startup(struct uart_port *u)
+ {
+ 	struct mxs_auart_port *s = to_auart_port(u);
+ 
++#ifdef CONFIG_SERIAL_MXS_AUART_MAX485
++	s->tx_count = 0;
++	mxs_auart_set_de(s, 0);
++#endif
++
+ 	clk_prepare_enable(s->clk);
+ 
+ 	writel(AUART_CTRL0_CLKGATE, u->membase + AUART_CTRL0_CLR);
+@@ -730,6 +752,12 @@ static int __devinit mxs_auart_probe(struct platform_device *pdev)
+ 	struct resource *r;
+ 	struct pinctrl *pinctrl;
+ 
++#ifdef CONFIG_SERIAL_MXS_AUART_MAX485
++	const char *desc = "max485_de";
++	int error;
++	unsigned gpio = CONFIG_SERIAL_MXS_AUART_MAX485_GPIO;
++#endif
++
+ 	s = kzalloc(sizeof(struct mxs_auart_port), GFP_KERNEL);
+ 	if (!s) {
+ 		ret = -ENOMEM;
+@@ -778,10 +806,6 @@ static int __devinit mxs_auart_probe(struct platform_device *pdev)
+ 	if (ret)
+ 		goto out_free_clk;
+ 
+-#ifdef CONFIG_SERIAL_MXS_AUART_MAX485
+-	s->tx_count = 0;
+-#endif
+-
+ 	platform_set_drvdata(pdev, s);
+ 
+ 	auart_port[s->port.line] = s;
+@@ -797,6 +821,22 @@ static int __devinit mxs_auart_probe(struct platform_device *pdev)
+ 	       (version >> 24) & 0xff,
+ 	       (version >> 16) & 0xff, version & 0xffff);
+ 
++#ifdef CONFIG_SERIAL_MXS_AUART_MAX485
++	s->tx_count = 0;
++	s->de_err = -1;
++	error = gpio_request(gpio, desc);
++	if (error < 0) {
++		dev_err(&pdev->dev, "Failed to request GPIO %d, error %d\n", gpio, error);
++	} else {
++		error = gpio_direction_output(gpio, 0);
++		if (error < 0) {
++			dev_err(&pdev->dev, "Failed to configure direction for GPIO %d, error %d\n", gpio, error);
++			gpio_free(gpio);
++		} else {
++			s->de_err = 0;
++		}
++	}
++#endif
+ 	return 0;
+ 
+ out_free_irq:
+@@ -815,6 +855,10 @@ static int __devexit mxs_auart_remove(struct platform_device *pdev)
+ {
+ 	struct mxs_auart_port *s = platform_get_drvdata(pdev);
+ 
++	if (!s->de_err) {
++		gpio_free(CONFIG_SERIAL_MXS_AUART_MAX485_GPIO);
++	}
++
+ 	uart_remove_one_port(&auart_driver, &s->port);
+ 
+ 	auart_port[pdev->id] = NULL;
+-- 
+1.8.3.3
+
