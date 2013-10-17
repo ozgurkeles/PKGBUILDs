@@ -4,11 +4,10 @@
 
 # ALARM: Kevin Mihelich <kevin@archlinuxarm.org>
 #  - removed intel-tbb from deps, set -DUSE_TBB=0
-#  - patch to block out x86 asm (https://github.com/OpenImageIO/oiio/pull/546)
 
 pkgname=openimageio
-pkgver=1.1.10
-pkgrel=2
+pkgver=1.2.1
+pkgrel=1
 pkgdesc="A library for reading and writing images, including classes, utilities, and applications"
 arch=(i686 x86_64)
 url="http://www.openimageio.org/"
@@ -17,15 +16,11 @@ depends=('openexr' 'boost-libs' 'jasper' 'glew' 'libtiff' 'opencolorio')
 makedepends=('cmake' 'qt4' 'python2' 'boost' 'mesa')
 optdepends=('qt4: iv image viewer'
             'python2: bindings support')
-source=(https://github.com/OpenImageIO/oiio/tarball/Release-$pkgver
-        arm.patch)
-md5sums=('e5c5cd77238f74c3a6a3610c211430f2'
-         '7cf2d71031c5f970edf481f55a594ecc')
+source=(https://github.com/OpenImageIO/oiio/tarball/Release-$pkgver)
+md5sums=('c98d002c9ec843b7cc35d7aec5f03326')
 
 build() {
   cd "$srcdir"/$_pkgname*
-
-  patch -p1 -i "$srcdir"/arm.patch
 
   cd src
 
@@ -36,6 +31,7 @@ build() {
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DPYLIB_INSTALL_DIR=lib/python2.7/site-packages \
       -DUSE_EXTERNAL_TBB=ON \
+      -DOIIO_BUILD_TESTS=OFF \
       -DUSE_TBB=0 \
       ..
   make

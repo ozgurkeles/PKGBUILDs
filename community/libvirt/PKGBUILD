@@ -6,7 +6,7 @@
 #  - remove numactl from depends, doesn't build on ARM
 
 pkgname=libvirt
-pkgver=1.1.0
+pkgver=1.1.3
 pkgrel=1
 pkgdesc="API for controlling virtualization engines (openvz,kvm,qemu,virtualbox,xen,etc)"
 arch=('i686' 'x86_64')
@@ -27,7 +27,7 @@ optdepends=('bridge-utils: for briged networking (default)'
 	    'ebtables')
 options=('emptydirs' '!libtool')
 backup=('etc/conf.d/libvirtd'
-	'etc/conf.d/libvirtd-guests'
+	'etc/conf.d/libvirt-guests'
 	'etc/libvirt/libvirtd.conf'
 	'etc/libvirt/libvirt.conf'
 	'etc/libvirt/qemu.conf'
@@ -37,7 +37,7 @@ source=("http://libvirt.org/sources/$pkgname-$pkgver.tar.gz"
 	libvirtd.conf.d
 	libvirtd-guests.conf.d
 	libvirt.tmpfiles.d)
-md5sums=('f980a84719033e9efca01048da505dfb'
+md5sums=('b0dfe373ebe0c588b42a28c14d36a3e6'
          '3ed0e24f5b5e25bf553f5427d64915e6'
          '0a96ed876ffb1fcb9dff5a9b3a609c1e'
          '020971887442ebbf1b6949e031c8dd3f')
@@ -72,7 +72,7 @@ package() {
   make DESTDIR="$pkgdir" install
 
   install -D -m644 "$srcdir"/libvirtd.conf.d "$pkgdir"/etc/conf.d/libvirtd
-  install -D -m644 "$srcdir"/libvirtd-guests.conf.d "$pkgdir"/etc/conf.d/libvirtd-guests
+  install -D -m644 "$srcdir"/libvirtd-guests.conf.d "$pkgdir"/etc/conf.d/libvirt-guests
 
   # systemd stuff
   install -D -m644 "$srcdir"/libvirt.tmpfiles.d "$pkgdir"/usr/lib/tmpfiles.d/libvirt.conf

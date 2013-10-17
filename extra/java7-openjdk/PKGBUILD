@@ -10,22 +10,23 @@
 #  - added our architectures to set _JARCH
 #  - strip -D_FORTIFY_SOURCE=2 from C/CXXFLAGS
 
-pkgname=('jre7-openjdk-headless' 'jre7-openjdk' 'jdk7-openjdk'
-         'openjdk7-src')
+noautobuild=1
+
+pkgname=('jre7-openjdk-headless' 'jre7-openjdk' 'jdk7-openjdk' 'openjdk7-src')
 pkgbase=java7-openjdk
 _java_ver=7
 _updatever=u40
-_icedtea_ver=2.4.0
+_icedtea_ver=2.4.2
 
 # check "${srcdir}/icedtea-${_icedtea_ver}"/Makefile.am
-_CORBA_CHANGESET=71d5ec2f3dfb
-_JAXP_CHANGESET=5eaf3bca7f68
-_JAXWS_CHANGESET=9d2007a13c02
-_JDK_CHANGESET=29ce11184945
-_LANGTOOLS_CHANGESET=ffb1b6bc4750
-_OPENJDK_CHANGESET=9c74cb4a3ae8
-
-_HOTSPOT_CHANGESET=c67fd7874b1a # see "${srcdir}/icedtea-${_icedtea_ver}"/hotspot.map
+_CORBA_CHANGESET=5ea58899ae9f
+_JAXP_CHANGESET=135f46e0e653
+_JAXWS_CHANGESET=a2ff16e5361f
+_JDK_CHANGESET=4bf5ac86e0e4
+_LANGTOOLS_CHANGESET=06ea051f7ffe
+_OPENJDK_CHANGESET=6125b83238df
+ 
+_HOTSPOT_CHANGESET=b732355257e3 # see "${srcdir}/icedtea-${_icedtea_ver}"/hotspot.map
 
 _bootstrap=0 # 0/1 for quick build or full bootstrap
 
@@ -37,7 +38,7 @@ license=('custom')
 options=('!emptydirs')
 makedepends=('jdk7-openjdk' 'libxp' 'libxslt'
              'alsa-lib' 'apache-ant>=1.8.1' 'giflib' 'libpng>=1.5.7' 'gtk2'
-             'java-rhino' 'libpulse>=0.9.11' 'zip' 'unzip' 'cpio' 'fastjar' 'wget')
+             'java-rhino' 'libpulse>=0.9.11' 'zip' 'unzip' 'cpio' 'fastjar' 'wget' 'procps-ng' 'inetutils')
 [ "$_bootstrap" = "1" ] && makedepends=(${makedepends[@]} 'eclipse-ecj')
 
 _url=http://icedtea.classpath.org/hg/release/icedtea7-forest-${_icedtea_ver:0:3}
@@ -51,24 +52,20 @@ source=(http://icedtea.classpath.org/download/source/icedtea-${_icedtea_ver}.tar
         ${_url}/langtools/archive/${_LANGTOOLS_CHANGESET}.tar.gz			# langtools.tar.gz
         ${_url}/hotspot/archive/${_HOTSPOT_CHANGESET}.tar.gz				# hotspot.tar.gz
         fontconfig-paths.diff
-        01_fix_openjdk_cmds_path.diff
-        02_fix_corba_cmds_path.diff
         openjdk7_nonreparenting-wm.diff
         jdk7-openjdk.profile
         jdk7-openjdk.profile.csh
         jre7-openjdk.profile
         jre7-openjdk.profile.csh)
-sha256sums=('be030583f0216151bd4b67b354085bf957b532d7bd2d67f14166bb6a1fc5497a'
-            '4adfde4b056ea8f35b639156c7cad8bac140ba7957ea8ce49b440089babc6579'
-            '0191c678935dac77c0ad085bedb59e6bcc93e0712c3a4ef2b7171562e129807c'
-            '25bb13db8a426c2d84e13eed0d598c88c447af41de3f678a70680897c38083fd'
-            '4cff8300b4c23e9327607f7c09295a99ef7d1032d8397429c7879ba489d14456'
-            '13024c623bb37c4d44cb3b724876d7827924868fb8f94428faa87ddb11492352'
-            '80cbe75f7c268e97619e8007f8d29ecbbb7584062c1286c8b470f875526028f3'
-            '34e60aba6db2f7a5cac7861058db283bd1edcdd9194a5490114cf76edd71696d'
+sha256sums=('3dab1edc5c0391bd67cfac60cbfb5c91aee6ea9726043252d9f216dfafd236b6'
+            'bc5703a7c31a6f1de53259768f613fa1f451d721d3301c58a59513dc3953d95b'
+            '41fc9041d7804bbd519290325c0a21b48405ed96ccf557037189b007391d33a8'
+            '3e043ea822cf18232fb0897431a2c900c8d29dce59e33bd8e3236ed1ac6c8fde'
+            'ac21931af93267188fb6dac8ed5eb44121e25e55fe432c19184c20c17cc9ceda'
+            '8cc46ef5d73a3a6445b411637fee5cc5f086e400d42b36f1f42eba4caee2a11a'
+            'd2de1d2e98ebea56d2367f0003e5f4b5031d55ed529a7c524df8eba9da08c735'
+            '4a4a04fa2c49d0a688400f6c9f129f47ba5cd931874c33254a047a1f36e6ac36'
             '9ad943ceb3dbcdf45d72974fc3667886a7ed65c69ab9abc17be5412827551a7f'
-            '583af9025df545264a15665e4c9f981bc7286aaecc6d312dced485102cf5dda9'
-            'd57754ff320475023688bd7c7af38a9ea37e27ed8c1edd3b1572e4d8b41b78d3'
             'fd615f476ef17853ae55b7aee3c92b6738f9ea584e915749b1caa7fdc5ff9ca4'
             'bd55299e08e6f8e61ba5baad0990170891801a29a1e8137e502b5e8a10fc37ea'
             '3f28f8bfc6dd105a07f747d7135c77a77de433e2b8647dd7520a900135203fbd'
@@ -101,8 +98,6 @@ build() {
 
   cp ${srcdir}/*.diff ${srcdir}/icedtea-${_icedtea_ver}/patches
   export DISTRIBUTION_PATCHES="patches/fontconfig-paths.diff \
-                               patches/01_fix_openjdk_cmds_path.diff \
-                               patches/02_fix_corba_cmds_path.diff \
                                patches/openjdk7_nonreparenting-wm.diff"
 
   if [ "$_bootstrap" = "1" ]; then
@@ -178,8 +173,8 @@ package_jre7-openjdk-headless() {
   rm -f lib/fontconfig.*.properties.src 
   rm -f lib/fontconfig.properties.src
 
-  install -d -m755 ${pkgdir}/${_jvmdir}/jre/
-  cp -a bin lib ${pkgdir}/${_jvmdir}/jre
+  install -d -m755 ${pkgdir}${_jvmdir}/jre
+  cp -a bin lib ${pkgdir}${_jvmdir}/jre
 
   # Install man pages
   pushd ../../j2re-image/man
@@ -191,22 +186,22 @@ package_jre7-openjdk-headless() {
   # more files that belong to the desktop package
   mkdir ${srcdir}/tmp-desktop-jre
   for file in \
-	"/usr/lib/jvm/java-7-openjdk/jre/bin/policytool" \
-	"/usr/lib/jvm/java-7-openjdk/jre/lib/${_JARCH}/libjsoundalsa.so" \
-	"/usr/lib/jvm/java-7-openjdk/jre/lib/${_JARCH}/libpulse-java.so" \
-	"/usr/lib/jvm/java-7-openjdk/jre/lib/${_JARCH}/libsplashscreen.so" \
-	"/usr/lib/jvm/java-7-openjdk/jre/lib/${_JARCH}/xawt/libmawt.so" \
-	"/usr/share/man/ja/man1/policytool.1" \
-	"/usr/share/man/man1/policytool.1"; do
+      "${_jvmdir}/jre/bin/policytool" \
+      "${_jvmdir}/jre/lib/${_JARCH}/libjsoundalsa.so" \
+      "${_jvmdir}/jre/lib/${_JARCH}/libpulse-java.so" \
+      "${_jvmdir}/jre/lib/${_JARCH}/libsplashscreen.so" \
+      "${_jvmdir}/jre/lib/${_JARCH}/xawt/libmawt.so" \
+      "/usr/share/man/ja/man1/policytool.1" \
+      "/usr/share/man/man1/policytool.1"; do
      dirname=`dirname $file`
      install -dm755 ${srcdir}/tmp-desktop-jre/$dirname || /bin/true
      # mv file from fakeinstall to pkgdir
      mv ${pkgdir}/$file ${srcdir}/tmp-desktop-jre$file
   done
-  rmdir ${pkgdir}/usr/lib/jvm/java-7-openjdk/jre/lib/${_JARCH}/xawt
+  rmdir ${pkgdir}${_jvmdir}/jre/lib/${_JARCH}/xawt
 
   # Link binaries into /usr/bin
-  pushd ${pkgdir}/${_jvmdir}/jre/bin
+  pushd ${pkgdir}${_jvmdir}/jre/bin
   install -m755 -d ${pkgdir}/usr/bin/
   for file in *; do
     ln -sf ${_jvmdir}/jre/bin/${file} ${pkgdir}/usr/bin
@@ -214,8 +209,8 @@ package_jre7-openjdk-headless() {
   popd
 
   # Link JKS keystore from ca-certificates-java
-  rm -f ${pkgdir}/${_jvmdir}/jre/lib/security/cacerts
-  ln -sf /etc/ssl/certs/java/cacerts "${pkgdir}/${_jvmdir}/jre/lib/security/cacerts"
+  rm -f ${pkgdir}${_jvmdir}/jre/lib/security/cacerts
+  ln -sf /etc/ssl/certs/java/cacerts "${pkgdir}${_jvmdir}/jre/lib/security/cacerts"
 
   # Set some variables
   install -m755 -d ${pkgdir}/etc/profile.d/
@@ -226,34 +221,42 @@ package_jre7-openjdk-headless() {
   install -m755 -d ${pkgdir}/usr/share/licenses/${pkgbase}/
   install -m644 ASSEMBLY_EXCEPTION LICENSE THIRD_PARTY_README \
                  ${pkgdir}/usr/share/licenses/${pkgbase}
+
+  # link license
+  ln -sf /usr/share/licenses/${pkgbase} "${pkgdir}/usr/share/licenses/${pkgname}"
 		 
   # Put some more files under backup control
   install -m755 -d ${pkgdir}/etc/java-7-openjdk/
-  install -m644 ${pkgdir}/usr/lib/jvm/java-7-openjdk/jre/lib/*.properties* ${pkgdir}/etc/java-7-openjdk/
+  install -m644 ${pkgdir}${_jvmdir}/jre/lib/*.properties* ${pkgdir}/etc/java-7-openjdk/
   # install dummy links to make them found by JAVA
-  cd ${pkgdir}/usr/lib/jvm/java-7-openjdk/jre/lib/
+  cd ${pkgdir}${_jvmdir}/jre/lib/
   for file in `ls ${pkgdir}/etc/java-7-openjdk/*.properties*`; do
     ln -vsf /etc/java-7-openjdk/`basename $file` .
   done
   # some more
   install -m755 -d ${pkgdir}/etc/java-7-openjdk/{cursors,management,security}
-  install -m644 ${pkgdir}/usr/lib/jvm/java-7-openjdk/jre/lib/images/cursors/cursors.properties ${pkgdir}/etc/java-7-openjdk/cursors/
-  pushd ${pkgdir}/usr/lib/jvm/java-7-openjdk/jre/lib/images/cursors/
+  install -m644 ${pkgdir}${_jvmdir}/jre/lib/images/cursors/cursors.properties \
+                ${pkgdir}/etc/java-7-openjdk/cursors/
+  pushd ${pkgdir}${_jvmdir}/jre/lib/images/cursors/
     ln -vsf /etc/java-7-openjdk/cursors/cursors.properties .
   popd
-  mv ${pkgdir}/usr/lib/jvm/java-7-openjdk/jre/lib/management/jmxremote.password.template ${pkgdir}/usr/lib/jvm/java-7-openjdk/jre/lib/management/jmxremote.password
-  mv ${pkgdir}/usr/lib/jvm/java-7-openjdk/jre/lib/management/snmp.acl.template ${pkgdir}/usr/lib/jvm/java-7-openjdk/jre/lib/management/snmp.acl
-  install -m644 ${pkgdir}/usr/lib/jvm/java-7-openjdk/jre/lib/management/{management.properties,jmxremote.access,jmxremote.password,snmp.acl} ${pkgdir}/etc/java-7-openjdk/management/
-  pushd ${pkgdir}/usr/lib/jvm/java-7-openjdk/jre/lib/management
+  mv ${pkgdir}${_jvmdir}/jre/lib/management/jmxremote.password.template \
+     ${pkgdir}${_jvmdir}/jre/lib/management/jmxremote.password
+  mv ${pkgdir}${_jvmdir}/jre/lib/management/snmp.acl.template \
+     ${pkgdir}${_jvmdir}/jre/lib/management/snmp.acl
+  install -m644 ${pkgdir}${_jvmdir}/jre/lib/management/{management.properties,jmxremote.access,jmxremote.password,snmp.acl} \
+                ${pkgdir}/etc/java-7-openjdk/management/
+  pushd ${pkgdir}${_jvmdir}/jre/lib/management
     ln -vsf /etc/java-7-openjdk/management/{management.properties,jmxremote.access,jmxremote.password,snmp.acl} .
   popd
-  install -m644 ${pkgdir}/usr/lib/jvm/java-7-openjdk/jre/lib/security/{java.policy,java.security,nss.cfg} ${pkgdir}/etc/java-7-openjdk/security/
-  pushd ${pkgdir}/usr/lib/jvm/java-7-openjdk/jre/lib/security
+  install -m644 ${pkgdir}${_jvmdir}/jre/lib/security/{java.policy,java.security,nss.cfg} \
+                ${pkgdir}/etc/java-7-openjdk/security/
+  pushd ${pkgdir}${_jvmdir}/jre/lib/security
     ln -vsf /etc/java-7-openjdk/security/{java.policy,java.security,nss.cfg} .
   popd
-  install -m644 ${pkgdir}/usr/lib/jvm/java-7-openjdk/jre/lib/fontconfig.bfc ${pkgdir}/etc/java-7-openjdk/
-  install -m644 ${pkgdir}/usr/lib/jvm/java-7-openjdk/jre/lib/${_JARCH}/jvm.cfg ${pkgdir}/etc/java-7-openjdk/
-  pushd ${pkgdir}/usr/lib/jvm/java-7-openjdk/jre/lib/${_JARCH}/
+  install -m644 ${pkgdir}${_jvmdir}/jre/lib/fontconfig.bfc ${pkgdir}/etc/java-7-openjdk/
+  install -m644 ${pkgdir}${_jvmdir}/jre/lib/${_JARCH}/jvm.cfg ${pkgdir}/etc/java-7-openjdk/
+  pushd ${pkgdir}${_jvmdir}/jre/lib/${_JARCH}/
      ln -vsf /etc/java-7-openjdk/jvm.cfg .
   popd
 }
@@ -273,7 +276,7 @@ package_jre7-openjdk() {
   
   mv ${srcdir}/tmp-desktop-jre/* ${pkgdir}
   # Link binaries into /usr/bin
-  pushd ${pkgdir}/${_jvmdir}/jre/bin
+  pushd ${pkgdir}${_jvmdir}/jre/bin
   install -m755 -d ${pkgdir}/usr/bin/
   for file in *; do
     ln -sf ${_jvmdir}/jre/bin/${file} ${pkgdir}/usr/bin
@@ -292,6 +295,10 @@ package_jre7-openjdk() {
   # Install desktop files.
   install -m755 -d ${pkgdir}/usr/share/applications
   install -m644 ${srcdir}/icedtea-${_icedtea_ver}/policytool.desktop ${pkgdir}/usr/share/applications
+
+  # link license
+  install -m755 -d ${pkgdir}/usr/share/licenses
+  ln -sf /usr/share/licenses/${pkgbase} "${pkgdir}/usr/share/licenses/${pkgname}"
 }
 
 package_jdk7-openjdk() {
@@ -305,13 +312,13 @@ package_jdk7-openjdk() {
   cd "${srcdir}/icedtea-${_icedtea_ver}/openjdk.build/j2sdk-image"
 
   # Main files
-  install -m755 -d ${pkgdir}/${_jvmdir}/
+  install -m755 -d ${pkgdir}${_jvmdir}
 
-  cp -a include lib ${pkgdir}/${_jvmdir}
+  cp -a include lib ${pkgdir}${_jvmdir}
 
   # 'bin' files
   pushd bin
-  install -m755 -d ${pkgdir}/${_jvmdir}/bin/ \
+  install -m755 -d ${pkgdir}${_jvmdir}/bin/ \
                    ${pkgdir}/usr/bin/ \
                    ${pkgdir}/usr/share/man/{,ja/}man1/
 
@@ -319,10 +326,10 @@ package_jdk7-openjdk() {
   for b in $(ls | grep -v java-rmi.cgi); do
     if [ -e ../jre/bin/${b} ]; then
       # Provide a link of the jre binary in the jdk/bin/ directory
-      ln -s ../jre/bin/${b} ${pkgdir}/${_jvmdir}/bin/${b}
+      ln -s ../jre/bin/${b} ${pkgdir}${_jvmdir}/bin/${b}
     else
       # Copy binary to jdk/bin/
-      install -m755 ${b} ${pkgdir}/${_jvmdir}/bin/${b}
+      install -m755 ${b} ${pkgdir}${_jvmdir}/bin/${b}
       # Copy man page
       install -m644 ../man/man1/${b}.1 ${pkgdir}/usr/share/man/man1/${b}.1
       install -m644 ../man/ja/man1/${b}.1 ${pkgdir}/usr/share/man/ja/man1/${b}.1
@@ -337,12 +344,16 @@ package_jdk7-openjdk() {
   install -m644 ${srcdir}/icedtea-${_icedtea_ver}/jconsole.desktop ${pkgdir}/usr/share/applications
 
   # Handling 'java-rmi.cgi' separately
-  install -m755 -D bin/java-rmi.cgi ${pkgdir}/${_jvmdir}/bin/java-rmi.cgi
+  install -m755 -D bin/java-rmi.cgi ${pkgdir}${_jvmdir}/bin/java-rmi.cgi
 
   # Set some variables
   install -m755 -d ${pkgdir}/etc/profile.d/
   install -m755 ${srcdir}/${pkgname}.profile ${pkgdir}/etc/profile.d/jdk.sh
   install -m755 ${srcdir}/${pkgname}.profile.csh ${pkgdir}/etc/profile.d/jdk.csh
+
+  # link license
+  install -m755 -d ${pkgdir}/usr/share/licenses
+  ln -sf /usr/share/licenses/${pkgbase} "${pkgdir}/usr/share/licenses/${pkgname}"
 }
 
 package_openjdk7-src() {
@@ -350,5 +361,5 @@ package_openjdk7-src() {
   replaces=('openjdk6-src')
   
   install -D ${srcdir}/icedtea-${_icedtea_ver}/openjdk.build/j2sdk-image/src.zip \
-             ${pkgdir}/${_jvmdir}/src.zip
+             ${pkgdir}${_jvmdir}/src.zip
 }
