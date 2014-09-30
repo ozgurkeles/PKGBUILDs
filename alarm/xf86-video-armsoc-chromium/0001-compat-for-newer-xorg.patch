@@ -1,0 +1,75 @@
+From afce5d5689b0548767c146dfe3b21bf5f603010f Mon Sep 17 00:00:00 2001
+From: Kevin Mihelich <kevin@archlinuxarm.org>
+Date: Fri, 23 May 2014 21:01:56 -0600
+Subject: [PATCH] compat for newer xorg
+
+---
+ src/compat-api.h      | 2 +-
+ src/drmmode_display.c | 5 -----
+ src/omap_driver.c     | 1 -
+ src/omap_driver.h     | 1 -
+ 4 files changed, 1 insertion(+), 8 deletions(-)
+
+diff --git a/src/compat-api.h b/src/compat-api.h
+index fa0f352..b74a582 100644
+--- a/src/compat-api.h
++++ b/src/compat-api.h
+@@ -46,7 +46,7 @@
+ #define SCREEN_ARG_TYPE int
+ #define SCREEN_PTR(arg1) ScreenPtr pScreen = screenInfo.screens[(arg1)]
+ 
+-#define SCREEN_INIT_ARGS_DECL int scrnIndex, ScreenPtr pScreen, int argc, char **argv
++#define SCREEN_INIT_ARGS_DECL int i, ScreenPtr pScreen, int argc, char **argv
+ 
+ #define BLOCKHANDLER_ARGS_DECL int arg, pointer blockData, pointer pTimeout, pointer pReadmask
+ #define BLOCKHANDLER_ARGS arg, blockData, pTimeout, pReadmask
+diff --git a/src/drmmode_display.c b/src/drmmode_display.c
+index 810f694..093fd2e 100644
+--- a/src/drmmode_display.c
++++ b/src/drmmode_display.c
+@@ -58,9 +58,6 @@
+ #include "compiler.h"
+ #include "mipointer.h"
+ 
+-/* All drivers implementing backing store need this */
+-#include "mibstore.h"
+-
+ #include "micmap.h"
+ 
+ #include "xf86DDC.h"
+@@ -1732,8 +1729,6 @@ Bool drmmode_pre_init(ScrnInfoPtr pScrn, int fd)
+ 
+ 	TRACE_ENTER();
+ 
+-	pScrn->canDoBGNoneRoot = TRUE;
+-
+ 	xf86CrtcConfigInit(pScrn, &drmmode_xf86crtc_config_funcs);
+ 
+ 	mode_res = drmModeGetResources(fd);
+diff --git a/src/omap_driver.c b/src/omap_driver.c
+index 65fff85..5223d97 100644
+--- a/src/omap_driver.c
++++ b/src/omap_driver.c
+@@ -693,7 +693,6 @@ OMAPScreenInit(SCREEN_INIT_ARGS_DECL)
+ 	}
+ 
+ 	/* Initialize backing store: */
+-	miInitializeBackingStore(pScreen);
+ 	xf86SetBackingStore(pScreen);
+ 
+ 	/* Cause the cursor position to be updated by the mouse signal handler: */
+diff --git a/src/omap_driver.h b/src/omap_driver.h
+index a62255f..a0dcbd6 100644
+--- a/src/omap_driver.h
++++ b/src/omap_driver.h
+@@ -40,7 +40,6 @@
+  * XXX - figure out what can be removed..
+  */
+ #include "mipointer.h"
+-#include "mibstore.h"
+ #include "micmap.h"
+ #include "colormapst.h"
+ #include "xf86cmap.h"
+-- 
+1.9.0
+

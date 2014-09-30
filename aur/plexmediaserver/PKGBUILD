@@ -11,9 +11,9 @@
 buildarch=2
 
 pkgname=plexmediaserver
-pkgver=0.9.8.6.175
+pkgver=0.9.9.14.531
 pkgrel=1
-_subver=88ffbb2
+_subver=7eef8c6
 pkgdesc="Plex Media Server for Linux"
 url='http://www.plexapp.com'
 arch=('arm')
@@ -22,15 +22,15 @@ depends=('rsync' 'avahi')
 backup=('etc/conf.d/plexmediaserver')
 install='plexmediaserver.install'
 
-source=("http://plex.r.worldssl.net/plex-media-server/${pkgver}-${_subver}/PlexMediaServer-${pkgver}-${_subver}-arm.spk"
+source=("http://downloads.plexapp.com/plex-media-server/${pkgver}-${_subver}/PlexMediaServer-${pkgver}-${_subver}-arm.spk"
         "${pkgname}.conf.d"
         "${pkgname}.service"
         "start_pms")
 
-md5sums=('a2dc6ecb2e710dd0162daaf5ee37fb53'
+md5sums=('d282cd6e2cb4c27ec360f8efd9023c29'
          '32cdd9f9de446f6646616a0077151726'
-	 'b69f7188025ff62187724041c959adef'
-	 '681ceb06eb6b0b49d6e14cbb81bcc8b9')
+         '6601ebe6607cfb7dda9f3d77c1d043a9'
+         'c4d158ae6f9a186e4553551d062febe3')
 build() {
       mkdir ${srcdir}/plex
       cd ${srcdir}/plex

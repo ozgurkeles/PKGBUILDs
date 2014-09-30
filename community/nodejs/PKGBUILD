@@ -1,4 +1,6 @@
-# Maintainer: Thomas Dziedzic < gostrc at gmail >
+# Maintainer: Felix Yan <felixonmars@archlinux.org>
+# Contributor  Bartłomiej Piotrowski <bpiotrowski@archlinux.org>
+# Contributor: Thomas Dziedzic < gostrc at gmail >
 # Contributor: James Campos <james.r.campos@gmail.com>
 # Contributor: BlackEagle < ike DOT devolder AT gmail DOT com >
 # Contributor: Dongsheng Cai <dongsheng at moodle dot com>
@@ -7,17 +9,22 @@
 # Contributor: Jason Plum <jplum@archlinuxarm.org>
 
 pkgname=nodejs
-pkgver=0.10.20
-pkgrel=1
+pkgver=0.10.32
+_npmver=2.1.2
+pkgrel=6
 pkgdesc='Evented I/O for V8 javascript'
 arch=('i686' 'x86_64' 'arm')
 url='http://nodejs.org/'
 license=('MIT')
-makedepends=('python2')
+provides=('nodejs-node-gyp')
+makedepends=('python2' 'git' 'procps-ng')
+optdepends=('python2: for node-gyp')
 checkdepends=('curl')
 options=('!emptydirs !strip')
-source=("http://nodejs.org/dist/v${pkgver}/node-v${pkgver}.tar.gz")
-sha256sums=('b5af00d4d43644f37caa2dad5fa81e6f898ebb7b238f02a1cddfcff11c81e649')
+source=("http://nodejs.org/dist/v$pkgver/node-v$pkgver.tar.gz"
+        git+https://github.com/npm/npm.git#tag=v$_npmver)
+sha256sums=('c2120d0e3d2d191654cb11dbc0a33a7216d53732173317681da9502be0030f10'
+            'SKIP')
 
 set_flags_for_arm() {
   if [ "$CARCH" == "arm" ]; then
@@ -47,6 +54,11 @@ set_flags_for_arm() {
 prepare() {
   cd node-v$pkgver
 
+  # We need newer version of npm to fix bugs
+  rm -r deps/npm
+  ln -s "$srcdir/npm" deps
+  rm -r "$srcdir/npm/.git"
+
   msg 'fixing for python2 name'
   find -type f -exec sed -e 's_^#!/usr/bin/env python$_&2_' -e 's_^\(#!/usr/bin/python2\).[45]$_\1_' -e 's_^#!/usr/bin/python$_&2_' -e "s_'python'_'python2'_" -i {} \;
   find test -type f -exec sed -e "s|python |python2 |" -i {} \;
@@ -60,7 +72,7 @@ build() {
 
   set_flags_for_arm
 
- # short-cutting python=python2 for GYP, as it will only be used here.
+  # short-cutting python=python2 for GYP, as it will only be used here.
   export PYTHON=python2
   if [ ! -f "${srcdir}/python" ]; then
     ln -s `which python2` ${srcdir}/python ;
@@ -75,20 +87,25 @@ build() {
   ./configure \
     --prefix=/usr \
     --without-snapshot \
-    --with-arm-float-abi=$EABI
+    --with-arm-float-abi=$EABI \
+    --shared-openssl 
 #    --shared-v8 \
 #    --shared-v8-libpath=/usr/lib \
 #    --shared-v8-includes=/usr/include 
-#    --shared-openssl \
 
 
   make 
+
+  cd ../npm
+  ../node-v$pkgver/node cli.js install ronn marked
+  PATH="$srcdir/node-v$pkgver:$PATH" make
+  ../node-v$pkgver/node cli.js uninstall ronn marked marked-man
 }
 
 check() {
   cd node-v${pkgver}
 
-  make test || true
+  make test || warning "Tests failed"
 }
 
 package() {
@@ -109,6 +126,16 @@ package() {
 
   install -D -m644 LICENSE \
     ${pkgdir}/usr/share/licenses/nodejs/LICENSE
+
+  install -d "$pkgdir"/usr/share/man/{man1,man3,man5,man7}
+  for _dir in man1 man3 man5 man7; do
+    cd "$pkgdir"/usr/lib/node_modules/npm/man/$_dir
+    for _file in *; do
+      ln -s /usr/lib/node_modules/npm/man/$_dir/$_file "$pkgdir"/usr/share/man/$_dir/
+    done
+  done
+
+  ln -s /usr/lib/node_modules/npm/node_modules/node-gyp/bin/node-gyp.js "$pkgdir"/usr/bin/node-gyp
 }
 
 # vim:set ts=2 sw=2 et:

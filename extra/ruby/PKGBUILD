@@ -1,0 +1,77 @@
+# Maintainer: Thomas Dziedzic <gostrc@gmail.com>
+# Contributor: Allan McRae <allan@archlinux.org>
+# Contributor: John Proctor <jproctor@prium.net>
+# Contributor: Jeramy Rutley <jrutley@gmail.com>
+
+# ALARM: Kevin Mihelich <kevin@archlinuxarm.org>
+#  - patch to fix running ruby on v5 (#705)
+
+pkgname=('ruby' 'ruby-docs')
+pkgver=2.1.3
+pkgrel=2
+arch=('i686' 'x86_64')
+url='http://www.ruby-lang.org/en/'
+license=('BSD' 'custom')
+# disable ruby tk since 1.9.3 it has caused a segfault on require 'tk'
+# https://bugs.ruby-lang.org/issues/8000
+# wait for upstream to start supporting tk 8.6
+makedepends=('gdbm' 'openssl' 'libffi' 'doxygen' 'graphviz' 'libyaml' 'ttf-dejavu') # 'tk'
+options=('!emptydirs' '!makeflags' 'staticlibs')
+source=("http://cache.ruby-lang.org/pub/ruby/${pkgver:0:3}/ruby-${pkgver}.tar.xz"
+        'gemrc'
+        '0002-Use-only-unsigned-long-for-rb_serial_t.patch')
+sha1sums=('d4e5447f0f6a5fda206cdadbfda470b97943ea7a'
+          'de4b760b7e2cd9af88ca67536ce37b950f1ee514'
+          '21a73f5a6009c038c14119864289d79c16545256')
+
+build() {
+  cd ruby-${pkgver}
+
+  # fixes https://bugs.ruby-lang.org/issues/9507
+  [[ $CARCH == 'arm' ]] && patch -Np1 -i ../0002-Use-only-unsigned-long-for-rb_serial_t.patch
+
+  PKG_CONFIG=/usr/bin/pkg-config ./configure \
+    --prefix=/usr \
+    --sysconfdir=/etc \
+    --enable-shared \
+    --disable-rpath \
+    --with-dbm-type=gdbm_compat
+
+  make
+}
+
+check() {
+  cd ruby-${pkgver}
+
+  make test
+}
+
+package_ruby() {
+  pkgdesc='An object-oriented language for quick and easy programming'
+  depends=('gdbm' 'openssl' 'libffi' 'libyaml' 'gmp' 'zlib')
+  optdepends=('ruby-docs: Ruby documentation') # 'tk: for Ruby/TK'
+  provides=('rubygems' 'rake')
+  conflicts=('rake')
+  backup=('etc/gemrc')
+  install='ruby.install'
+
+  cd ruby-${pkgver}
+
+  make DESTDIR="${pkgdir}" install-nodoc
+
+  install -D -m644 ${srcdir}/gemrc "${pkgdir}/etc/gemrc"
+
+  install -D -m644 COPYING "${pkgdir}/usr/share/licenses/ruby/LICENSE"
+  install -D -m644 BSDL "${pkgdir}/usr/share/licenses/ruby/BSDL"
+}
+
+package_ruby-docs() {
+  pkgdesc='Documentation files for ruby'
+
+  cd ruby-${pkgver}
+
+  make DESTDIR="${pkgdir}" install-doc install-capi
+
+  install -D -m644 COPYING "${pkgdir}/usr/share/licenses/ruby-docs/LICENSE"
+  install -D -m644 BSDL "${pkgdir}/usr/share/licenses/ruby-docs/BSDL"
+}

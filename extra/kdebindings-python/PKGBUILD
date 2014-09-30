@@ -8,7 +8,7 @@ pkgbase=kdebindings-python
 pkgname=('kdebindings-python'
          'kdebindings-python2'
          'kdebindings-python-common')
-pkgver=4.11.2
+pkgver=4.14.1
 pkgrel=1
 url='https://projects.kde.org/projects/kde/kdebindings/pykde4'
 arch=('i686' 'x86_64')
@@ -17,15 +17,15 @@ groups=('kdebindings')
 makedepends=('cmake' 'automoc4' 'boost' 'kdepim-runtime' 'python2-pyqt4'
              'python-pyqt4' 'qscintilla' 'python2-sip' 'python-sip' 'mesa')
 source=("http://download.kde.org/stable/${pkgver}/src/pykde4-${pkgver}.tar.xz"
-        "pykde4-4.10.0-arm-sip.patch")
-sha1sums=('5e7c43e224fa1db4ae2bbec1eb040dd2855e8c86'
+        "pykde4-4.14.0-arm-sip.patch")
+sha1sums=('39e976e8857d9bc5cc58332ff194cb7042253665'
           'f0798d25767768006d5f674049e51b2e39f9f4eb')
 
 prepare() {
   mkdir build
 
   cd pykde4-${pkgver}
-  patch -Np1 -i "${srcdir}/pykde4-4.10.0-arm-sip.patch"
+  patch -Np1 -i "${srcdir}/pykde4-4.14.0-arm-sip.patch"
 }
 
 build() {
@@ -37,8 +37,10 @@ build() {
     -DKDE4_BUILD_TESTS=OFF \
     -DCMAKE_INSTALL_PREFIX=/usr \
     -DPYTHON_EXECUTABLE=/usr/bin/python3 \
-    -DPYTHON_LIBRARY=/usr/lib/libpython3.3m.so.1.0 \
-    -DPYKDEUIC4_ALTINSTALL=TRUE
+    -DPYTHON_LIBRARY=/usr/lib/libpython3.4m.so.1.0 \
+    -DPYKDEUIC4_ALTINSTALL=TRUE \
+    -DWITH_Nepomuk=OFF \
+    -DWITH_Soprano=OFF
   make
   cd ..
 
@@ -49,7 +51,9 @@ build() {
     -DKDE4_BUILD_TESTS=OFF \
     -DCMAKE_INSTALL_PREFIX=/usr \
     -DPYTHON_EXECUTABLE=/usr/bin/python2 \
-    -DPYKDEUIC4_ALTINSTALL=TRUE
+    -DPYKDEUIC4_ALTINSTALL=TRUE \
+    -DWITH_Nepomuk=OFF \
+    -DWITH_Soprano=OFF
   make
 }
 
@@ -64,7 +68,7 @@ package_kdebindings-python() {
   rm -r "${pkgdir}"/usr/share/apps/pykde4/examples
   rm -r "${pkgdir}"/usr/share/sip/PyKDE4
 
-  ln -s /usr/bin/pykdeuic4-3.3 "${pkgdir}"/usr/bin/pykdeuic4
+  ln -s /usr/bin/pykdeuic4-3.4 "${pkgdir}"/usr/bin/pykdeuic4
 }
 
 package_kdebindings-python2() {

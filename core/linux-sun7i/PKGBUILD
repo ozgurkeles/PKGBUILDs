@@ -4,30 +4,38 @@
 buildarch=4
 
 pkgbase=linux-sun7i
-_commit=e906c090ca17ed30ed0e826df3c4d095e5f5c865
+_commit=e37d760b363888f3a65cd6455c99a75cac70a7b8
 _srcname=linux-sunxi-${_commit}
 _kernelname=${pkgbase#linux}
 _desc="sun7i"
-pkgver=3.3.0
-pkgrel=4
+pkgver=3.4.90
+pkgrel=5
 arch=('armv7h')
-url="https://github.com/cubieboard2/linux-sunxi"
+url="https://github.com/linux-sunxi/linux-sunxi/"
 license=('GPL2')
-makedepends=('xmlto' 'docbook-xsl' 'kmod' 'inetutils' 'bc' 'uboot-mkimage')
+makedepends=('xmlto' 'docbook-xsl' 'kmod' 'inetutils' 'bc' 'uboot-mkimage' 'git')
 options=('!strip')
-source=("https://github.com/cubieboard2/linux-sunxi/archive/${_commit}.tar.gz"
-        'config')
-md5sums=('7fa48cc5b9d8917601aa1f95818a6a08'
-         '1e304024372dce93c3e99f9db3235e66')
+source=("https://github.com/linux-sunxi/linux-sunxi/archive/${_commit}.tar.gz"
+        'config'
+        'working-bcmdhd-driver.patch'
+        '0001-Backport-BFP-XOR-operation.patch')
+md5sums=('dbf73f4cb6b1399e73449f4e91bf5694'
+         '75d4998cd9544be9423d80564441ec31'
+         '07c260ca97572a830778362c7b744f9c'
+         'ca5b466850782493b99e824d6efbea4d')
 
 prepare() {
   cd "${srcdir}/${_srcname}"
 
   cat "${srcdir}/config" > ./.config
 
+  # patch bcmdhd driver with a working version
+  patch -Np1 -i "${srcdir}/working-bcmdhd-driver.patch"
+
+  git apply ../0001-Backport-BFP-XOR-operation.patch
+
   # add pkgrel to extraversion
   sed -ri "s|^(EXTRAVERSION =)(.*)|\1 \2-${pkgrel}|" Makefile
-  sed -ri "138c MODULE_LICENSE(\"GPL\");" arch/arm/mach-sun7i/rf/bt_pm.c
 
   # don't run depmod on 'make install'. We'll do this ourselves in packaging
   sed -i '2iexit 0' scripts/depmod.sh
@@ -35,6 +43,8 @@ prepare() {
 
 build() {
   cd "${srcdir}/${_srcname}"
+
+  LDFLAGS=""
 
   # get kernel version
   make prepare
@@ -67,7 +77,7 @@ _package() {
   pkgdesc="The Linux Kernel and modules - ${_desc}"
   depends=('coreutils' 'linux-firmware' 'kmod' 'mkinitcpio>=0.7')
   optdepends=('crda: to set the correct wireless channels of your country')
-  provides=('kernel26' 'linux=${pkgver}' 'aufs_friendly')
+  provides=('kernel26' "linux=${pkgver}" 'aufs_friendly')
   conflicts=('linux-omap' 'linux-imx6' 'linux-armada370')
   install=${pkgname}.install
 
@@ -112,7 +122,7 @@ _package() {
 
 _package-headers() {
   pkgdesc="Header files and scripts for building modules for linux kernel - ${_desc}"
-  provides=('linux-headers=${pkgver}')
+  provides=("linux-headers=${pkgver}")
   conflicts=('linux-headers-omap' 'linux-headers-imx6')
 
   install -dm755 "${pkgdir}/usr/lib/modules/${_kernver}"
@@ -140,6 +150,8 @@ _package-headers() {
   cp -a arch/$KARCH/include ${pkgdir}/usr/src/linux-${_kernver}/arch/$KARCH/
   mkdir -p ${pkgdir}/usr/src/linux-${_kernver}/arch/$KARCH/mach-sun7i
   cp -a arch/$KARCH/mach-sun7i/include ${pkgdir}/usr/src/linux-${_kernver}/arch/$KARCH/mach-sun7i/
+  mkdir -p ${pkgdir}/usr/src/linux-${_kernver}/arch/$KARCH/plat-sunxi
+  cp -a arch/$KARCH/plat-sunxi/include ${pkgdir}/usr/src/linux-${_kernver}/arch/$KARCH/plat-sunxi/
 
   # copy files necessary for later builds, like nvidia and vmware
   cp Module.symvers "${pkgdir}/usr/src/linux-${_kernver}"

@@ -7,6 +7,8 @@
 
 # ALARM: Kevin Mihelich <kevin@archlinuxarm.org>
 #  - --disable-vdpau/xvda, remove from makedepends
+#  - --disable-vaapi
+#  - --enable-gl -> --enable-gles
 #  - specify our C/CXXFLAGS in configure
 
 buildarch=4
@@ -14,39 +16,57 @@ buildarch=4
 _prefix=/usr
 
 pkgname=xbmc
-pkgver=12.2
-pkgrel=5
+pkgver=13.2
+_codename=Gotham
+pkgrel=4
 pkgdesc="A software media player and entertainment hub for digital media"
 arch=('i686' 'x86_64')
 url="http://xbmc.org"
-license=('GPL' 'custom')
-depends=('libpulse' 'hicolor-icon-theme' 'fribidi' 'lzo2' 'smbclient' 'libtiff' 'libva'
-	 'libpng' 'libcdio' 'yajl' 'libmariadbclient' 'libjpeg-turbo' 'libsamplerate'
-	 'glew' 'libssh' 'libmicrohttpd' 'libxrandr' 'sdl_mixer' 'sdl_image' 'python2'
-	 'libass' 'libmpeg2' 'libmad' 'libmodplug' 'jasper' 'rtmpdump' 'unzip' 'mesa-demos'
-	 'xorg-xdpyinfo' 'libbluray' 'libnfs' 'afpfs-ng' 'libshairport' 'avahi' 'bluez-libs' 'glu'
-	 'tinyxml' 'taglib')
-makedepends=('boost' 'cmake' 'gperf' 'nasm' 'libxinerama' 'zip' 'libcec'
-	     'udisks' 'upower' 'mesa' 'doxygen' 'swig' 'java-environment')
-optdepends=('libcec: support for Pulse-Eight USB-CEC adapter'
-	    'pulseaudio: pulseaudio support'
-	    'lirc: remote controller support'
-	    'udisks: automount external drives'
-	    'upower: used to trigger suspend functionality'
-	    'unrar: access compressed files without unpacking them'
-	    'xorg-xinit: autostart xbmc')
+license=('GPL2')
+depends=(
+'avahi' 'ffmpeg' 'hicolor-icon-theme' 'lame' 'libass' 'libbluray' 'libcdio' 'libmad'
+'libmicrohttpd' 'libmodplug' 'libmpeg2' 'libmysqlclient' 'libpulse'
+'libsamplerate' 'libssh' 'libva' 'libvdpau' 'libvorbis' 'libxrandr' 'libxslt'
+'lzo' 'mesa' 'mesa-demos' 'python2' 'python2-pillow' 'rtmpdump' 'sdl_image'
+'smbclient' 'taglib' 'tinyxml' 'unzip' 'xorg-xdpyinfo' 'yajl'
+)
+makedepends=(
+'afpfs-ng' 'libnfs' 'libplist' 'shairplay' 'libcec' 'boost' 'cmake' 'doxygen'
+'gperf' 'jasper' 'java-runtime-headless' 'nasm' 'swig' 'taglib' 'udisks'
+'upower' 'zip'
+)
+optdepends=(
+'afpfs-ng: Apple File Protocol suport'
+'libnfs: NFS Share support'
+'libplist: AirPlay support'
+'shairplay: AirPlay support'
+'libcec: Pulse-Eight USB-CEC adapter support'
+'pulseaudio: for pulseaudio support'
+'lirc: remote controller support'
+'unrar: access compressed files without unpacking them'
+'xorg-xinit: autostart xbmc'
+'udisks: automount external drives'
+'upower: display battery level'
+)
 install="${pkgname}.install"
-source=("http://mirrors.xbmc.org/releases/source/xbmc-$pkgver.tar.gz"
-	"xbmc.service")
-md5sums=('489f3877decae4e265ece54f9eaef0ba'
-         '76fae229ebc3bcfaab7e7f27e4fb51f5')
+source=("xbmc-$pkgver-$_codename.tar.gz::https://github.com/xbmc/xbmc/archive/$pkgver-$_codename.tar.gz"
+        'enable-external-ffmpeg.patch')
+sha256sums=('acbf5dffa3034a3406240ee3cf81e721386cd383d23d056ddde1f769e050e585'
+            '0239e33e87292c7340ed2092f2b5f1e82f5e283b1f763fb125b3aee78f50c355'
+            '5f5fe2932050265ad71c82b5d23efe5eaf7b2b3a152bdc6da66675cfb655fabe'
+            'cec996873f7c45fd01c04b5598152f4a13509eed9b38f395dd1fe0d5c8a4c1ff')
+
+prepare() {
+  cd "$srcdir/xbmc-$pkgver-$_codename"
+  patch -p1 -i "$srcdir/enable-external-ffmpeg.patch"
+
+  find -type f -name *.py -exec sed 's|^#!.*python$|#!/usr/bin/python2|' -i "{}" +
+  sed 's|^#!.*python$|#!/usr/bin/python2|' -i tools/depends/native/rpl-native/rpl
+  sed 's/python/python2/' -i tools/Linux/xbmc.sh.in
+}
 
 build() {
-  cd "${srcdir}/xbmc-$pkgver"
-
-  # fix lsb_release dependency
-  sed -i -e 's:/usr/bin/lsb_release -d:cat /etc/arch-release:' xbmc/utils/SystemInfo.cpp
-  sed -i -e 's:#include <libsmbclient.h>:#include <samba-4.0/libsmbclient.h>:' xbmc/filesystem/{SmbFile,SMBDirectory}.cpp
+  cd "$srcdir/xbmc-$pkgver-$_codename"
 
   # Bootstrapping XBMC
   ./bootstrap
@@ -56,9 +76,9 @@ build() {
   ./configure --prefix=$_prefix --exec-prefix=$_prefix \
     --disable-debug \
     --enable-optimizations \
-    --enable-gl \
+    --enable-gles \
     --enable-sdl \
-    --enable-vaapi \
+    --disable-vaapi \
     --disable-vdpau \
     --disable-xvba \
     --enable-joystick \
@@ -84,36 +104,25 @@ build() {
     --enable-udev \
     --enable-libusb \
     --enable-libcec \
-    --enable-external-libraries \
-    --disable-external-ffmpeg \
+    --with-lirc-device=/run/lirc/lircd \
     CFLAGS="${CFLAGS}" CXXFLAGS="${CXXFLAGS}"
   # Now (finally) build
   make
 }
 
 package() {
-  cd "${srcdir}/xbmc-$pkgver"
+  cd "$srcdir/xbmc-$pkgver-$_codename"
   # Running make install
-  make DESTDIR="${pkgdir}" install
-
-  # run feh with python2
-  sed -i -e 's/python/python2/g' ${pkgdir}${_prefix}/bin/xbmc
-
-  # lsb_release fix
-  sed -i -e 's/which lsb_release &> \/dev\/null/\[ -f \/etc\/arch-release ]/g' "${pkgdir}${_prefix}/bin/xbmc"
-  sed -i -e "s/lsb_release -a 2> \/dev\/null | sed -e 's\/\^\/    \/'/cat \/etc\/arch-release/g" "${pkgdir}${_prefix}/bin/xbmc"
+  make DESTDIR="$pkgdir" install
 
   # Tools
-  install -D -m 0755 "${srcdir}/xbmc-$pkgver/xbmc-xrandr" "${pkgdir}${_prefix}/share/xbmc/xbmc-xrandr"
-# cheap, not there after configure.
-#  install -D -m 0755 "${srcdir}/xbmc-$pkgver/tools/TexturePacker/TexturePacker" "${pkgdir}${_prefix}/share/xbmc/"
+  # Stupid TexturePacker does not exist.
+  #install -D -m 0755 "${srcdir}/xbmc-$pkgver-$_codename/tools/TexturePacker/TexturePacker" "${pkgdir}${_prefix}/share/xbmc/"
 
   # Licenses
-  install -d -m 0755 "${pkgdir}${_prefix}/share/licenses/${pkgname}"
+  install -dm755 "${pkgdir}$_prefix/share/licenses/$pkgname"
   for licensef in LICENSE.GPL copying.txt; do
-    mv "${pkgdir}${_prefix}/share/doc/xbmc/${licensef}" "${pkgdir}${_prefix}/share/licenses/${pkgname}"
+    mv "${pkgdir}$_prefix/share/doc/xbmc/$licensef" \
+       "${pkgdir}$_prefix/share/licenses/$pkgname"
   done
-
-  # systemd stuff
-  install -Dm0644 $srcdir/xbmc.service $pkgdir/usr/lib/systemd/system/xbmc.service
 }

@@ -6,23 +6,21 @@
 #  - removed intel-tbb from deps, set -DUSE_TBB=0
 
 pkgname=openimageio
-pkgver=1.2.1
+pkgver=1.4.13
 pkgrel=1
 pkgdesc="A library for reading and writing images, including classes, utilities, and applications"
 arch=(i686 x86_64)
 url="http://www.openimageio.org/"
 license=('custom')
 depends=('openexr' 'boost-libs' 'jasper' 'glew' 'libtiff' 'opencolorio')
-makedepends=('cmake' 'qt4' 'python2' 'boost' 'mesa')
+makedepends=('cmake' 'qt4' 'python2' 'boost' 'mesa' 'git')
 optdepends=('qt4: iv image viewer'
             'python2: bindings support')
-source=(https://github.com/OpenImageIO/oiio/tarball/Release-$pkgver)
-md5sums=('c98d002c9ec843b7cc35d7aec5f03326')
+source=(git+git://github.com/OpenImageIO/oiio.git#tag=Release-${pkgver})
+md5sums=('SKIP')
 
 build() {
-  cd "$srcdir"/$_pkgname*
-
-  cd src
+  cd oiio
 
   [[ -d build ]] && rm -r build
   mkdir build && cd build
@@ -38,11 +36,11 @@ build() {
 }
 
 package() {
-  cd "$srcdir"/$_pkgname*/src/build
+  cd oiio/build
 
   make DESTDIR="$pkgdir" install
 
   # license
-  cd ../..
+  cd ..
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }

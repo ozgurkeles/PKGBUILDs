@@ -1,0 +1,44 @@
+# U-Boot: BeagleBoard and BeagleBoard-xM
+# Maintainer: Kevin Mihelich <kevin@archlinuxarm.org>
+
+buildarch=4
+
+pkgname=uboot-beagleboard
+pkgver=2014.04
+pkgrel=1
+pkgdesc="U-Boot for BeagleBoard and BeagleBoard-xM"
+arch=('armv7h')
+url="http://git.denx.de/u-boot.git/"
+license=('GPL')
+makedepends=('git')
+source=("ftp://ftp.denx.de/pub/u-boot/u-boot-${pkgver}.tar.bz2"
+        "https://raw.github.com/eewiki/u-boot-patches/master/v${pkgver}/0001-omap3_beagle-uEnv.txt-bootz-n-fixes.patch"
+        'alarm.patch'
+        'uEnv.txt')
+md5sums=('6d2116d1385a66e9a59742caa9d62a54'
+         '242047dc2fdd99593833e9ff23081432'
+         '50df3ef011901e8051b42fd3528b0d86'
+         '3704f05f308e3bb73a5b67a033b2ce5c')
+
+prepare() {
+  cd u-boot-${pkgver}
+
+  patch -p1 -i "${srcdir}"/0001-omap3_beagle-uEnv.txt-bootz-n-fixes.patch
+  patch -p1 -i "${srcdir}"/alarm.patch
+}
+
+build() {
+  cd u-boot-${pkgver}
+
+  unset LDFLAGS CFLAGS CXXFLAGS
+
+  make distclean 
+  make omap3_beagle_config
+  make
+}
+
+package() {
+  cd u-boot-${pkgver}
+  mkdir -p "${pkgdir}"/boot
+  cp MLO u-boot.img "${srcdir}"/uEnv.txt "${pkgdir}"/boot
+}

@@ -8,6 +8,9 @@ ac_add_options --libdir=/usr/lib
 ac_add_options --disable-elf-hack
 ac_add_options --disable-neon
 ac_add_options --disable-webrtc
+ac_add_options --enable-calendar
+ac_add_options --disable-debug
+ac_add_options --disable-debug-symbols
 
 # System libraries
 ac_add_options --with-system-nspr
@@ -38,6 +41,7 @@ ac_add_options --disable-updater
 ac_add_options --disable-tests
 ac_add_options --disable-mochitest
 ac_add_options --disable-installer
+ac_add_options --disable-debug-symbols
 
 # Optimization
 ac_add_options --enable-optimize

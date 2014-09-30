@@ -7,24 +7,24 @@ pkgbase=linux-odroid
 pkgname=('linux-odroid-x' 'linux-odroid-x2' 'linux-odroid-u2' 'linux-headers-odroid')
 _kernelname=${pkgname#linux}
 _basekernel=3.8
-pkgver=${_basekernel}.13.10
+pkgver=${_basekernel}.13.28
 pkgrel=2
 arch=('armv7h')
 url="http://github.com/hardkernel/linux/"
 license=('GPL2')
-makedepends=('xmlto' 'docbook-xsl' 'git' 'inetutils' 'bc')
+makedepends=('xmlto' 'docbook-xsl' 'kmod' 'git' 'inetutils' 'bc')
 options=('!strip')
-_commit=8959d0ad998e31f44e2f61b6448347c91a933705
+_commit=1f8be42846981d452492d1d590da4a50bff482aa
 source=("https://github.com/hardkernel/linux/archive/${_commit}.tar.gz"
         'config_x'
         'config_x2'
         'config_u2')
-md5sums=('d3a6c465e64850364adbde0344c2b80d'
-         'fc30e27d894a9b16817fcba5e230b49c'
-         '531d21470a5f1574ea6f93a7fdfeabaa'
-         'af01177c2b170651aec147aca1246a0f')
+md5sums=('9c8ecbdfba5da2d9b545e55dafd0d23d'
+         'd62dbed886fb95750031d4ab577c4739'
+         '4ee9bbb8bf22b078ffcb6d5d60f9d431'
+         'e2e88e5c82e509d13287d45f78a6caeb')
 
-build() {
+prepare() {
   cd "${srcdir}/linux-${_commit}"
 
   # add pkgrel to extraversion

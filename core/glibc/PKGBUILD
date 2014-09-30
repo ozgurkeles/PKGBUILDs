@@ -4,6 +4,8 @@
 # toolchain build order: linux-api-headers->glibc->binutils->gcc->binutils->glibc
 # NOTE: valgrind requires rebuilt with each major glibc version
 
+# NOTE: adjust version in install script when locale files are updated
+
 # ALARM: Kevin Mihelich <kevin@archlinuxarm.org>
 # - Patch for ld-linux-armhf.so.3 transition and symlink ld-linux.so.3
 # - Patch for hard-float ld.so.cache transition
@@ -13,78 +15,53 @@
 noautobuild=1
 
 pkgname=glibc
-pkgver=2.18
-pkgrel=9
+pkgver=2.20
+pkgrel=2
 pkgdesc="GNU C Library"
 arch=('i686' 'x86_64')
 url="http://www.gnu.org/software/libc"
 license=('GPL' 'LGPL')
 groups=('base')
-depends=('linux-api-headers>=3.7' 'tzdata' 'filesystem>=2013.01')
-makedepends=('gcc>=4.7')
+depends=('linux-api-headers>=3.16' 'tzdata' 'filesystem>=2013.01')
++makedepends=('gcc>=4.9')
 backup=(etc/gai.conf
         etc/locale.gen
         etc/nscd.conf)
-options=('!strip' '!distcc')
+options=('!strip' 'staticlibs' '!distcc')
 install=glibc.install
 source=(http://ftp.gnu.org/gnu/libc/${pkgname}-${pkgver}.tar.xz{,.sig}
-        glibc-2.18-readdir_r-CVE-2013-4237.patch
-	glibc-2.18-malloc-corrupt-CVE-2013-4332.patch
-	glibc-2.18-strcoll-CVE-2012-4412+4424.patch
-        glibc-2.18-strstr-hackfix.patch
-        glibc-2.18-ptr-mangle-CVE-2013-4788.patch
-        glibc-2.18-getaddrinfo-CVE-2013-4458.patch
-        glibc-2.18-getaddrinfo-assertion.patch
+        glibc-2.20-getifaddrs_internal-segfault.patch
+        glibc-2.20-linux-3.16-additions.patch
+        glibc-2.20-do_ftell_wide-memleak.patch
         local-soname-hack.diff
-        fix-hf-ld.so.cache.patch
-        nscd.service
-        nscd.tmpfiles
         locale.gen.txt
         locale-gen)
-md5sums=('88fbbceafee809e82efd52efa1e3c58f'
+md5sums=('948a6e06419a01bd51e97206861595b0'
          'SKIP'
-         '154da6bf5a5248f42a7bf5bf08e01a47'
-         'b79561ab9dce900e9bbeaf0d49927c2b'
-         'c7264b99d0f7e51922a4d3126182c40a'
-         '9749ba386b08a8fe53e7ecede9bf2dfb'
-         '71329fccb8eb583fb0d67b55f1e8df68'
-         'd4d86add33f22125777e0ecff06bc9bb'
-         '4441f6dfe7d75ced1fa75e54dd21d36e'
-         '589d79041aa767a5179eaa4e2737dd3f'
-         'ad8a9af15ab7eeaa23dc7ee85024af9f'
-         'd5fab2cd3abea65aa5ae696ea4a47d6b'
-         'da662ca76e7c8d7efbc7986ab7acea2d'
+         '1c5d5c2017445c75dbc5c6d0c1e45ddb'
+         '8f1059f431b842e54b12bde689620df8'
+         'b50feeab78fa6ce0a8cfb41ee8dc1fd8'
+         '905370139382428ef2b97b247c0970bf'
          '07ac979b6ab5eeb778d55f041529d623'
          '476e9113489f93b348b21e144b6a8fcf')
+validpgpkeys=('F37CDAB708E65EA183FD1AF625EF0A436C2A4AFF')  # Carlos O'Donell
 
 prepare() {
   cd ${srcdir}/${pkgname}-${pkgver}
 
-  # upstream commit 91ce4085
-  patch -p1 -i $srcdir/glibc-2.18-readdir_r-CVE-2013-4237.patch
-
-  # upstream commits 1159a193, 55e17aad and b73ed247
-  patch -p1 -i $srcdir/glibc-2.18-malloc-corrupt-CVE-2013-4332.patch
-
-  # upstream commits 1326ba1a, 141f3a77 and 303e567a
-  patch -p1 -i $srcdir/glibc-2.18-strcoll-CVE-2012-4412+4424.patch
-
-  # upstream commits c61b4d41 and 0b1f8e35
-  patch -p1 -i $srcdir/glibc-2.18-ptr-mangle-CVE-2013-4788.patch
-
-  # upstream commit 7cbcdb36
-  patch -p1 -i $srcdir/glibc-2.18-getaddrinfo-CVE-2013-4458.patch
-
-  # upstream commit 894f3f10
-  patch -p1 -i $srcdir/glibc-2.18-getaddrinfo-assertion.patch
+  # fix segfault in getifaddrs_internal
+  # https://sourceware.org/ml/libc-alpha/2014-09/msg00312.html
+  patch -p1 -i $srcdir/glibc-2.20-getifaddrs_internal-segfault.patch
   
-  # hack fix for strstr issues on x86
-  patch -p1 -i $srcdir/glibc-2.18-strstr-hackfix.patch
+  # linux 3.16 additions - commit 0bd72468
+  patch -p1 -i $srcdir/glibc-2.20-linux-3.16-additions.patch
+  
+  # plug memory leak - commit 984c0ea9
+  patch -p1 -i $srcdir/glibc-2.20-do_ftell_wide-memleak.patch
 
   # ALARM: patch for hard-float ld-linux soname
   if [[ $CARCH == "armv6h" || $CARCH == "armv7h" ]]; then
     patch -p1 -i ${srcdir}/local-soname-hack.diff
-    patch -p1 -i ${srcdir}/fix-hf-ld.so.cache.patch
   fi
 
   mkdir ${srcdir}/glibc-build
@@ -99,6 +76,7 @@ build() {
   [[ $CARCH == "armv7h" ]] && CONFIGFLAG="--host=armv7l-unknown-linux-gnueabihf --build=armv7l-unknown-linux-gnueabihf"
 
   echo "slibdir=/usr/lib" >> configparms
+  echo "rtlddir=/usr/lib" >> configparms
   echo "sbindir=/usr/bin" >> configparms
   echo "rootsbindir=/usr/bin" >> configparms
 
@@ -106,11 +84,14 @@ build() {
   CFLAGS=${CFLAGS/-fstack-protector/}
   CPPFLAGS=${CPPFLAGS/-D_FORTIFY_SOURCE=2/}
 
+  # enable unwinding tables so that gdb can unwind the standard functions
+  CFLAGS+=" -funwind-tables"
+
   ${srcdir}/${pkgname}-${pkgver}/configure --prefix=/usr \
       --libdir=/usr/lib --libexecdir=/usr/lib \
       --with-headers=/usr/include \
       --with-bugurl=https://github.com/archlinuxarm/PKGBUILDs/issues \
-      --enable-add-ons=nptl,libidn,ports \
+      --enable-add-ons \
       --enable-obsolete-rpc \
       --enable-kernel=2.6.27 \
       --enable-bind-now --disable-profile \
@@ -129,15 +110,17 @@ build() {
   make
 
   # remove harding in preparation to run test-suite
-  sed -i '4,6d' configparms
+  sed -i '5,7d' configparms
 }
 
 check() {
-  # bug to file - the linker commands need to be reordered
+  # the linker commands need to be reordered - fixed in 2.19
   LDFLAGS=${LDFLAGS/--as-needed,/}
 
   cd ${srcdir}/glibc-build
-  #make -k check
+
+  # tst-cleanupx4 failure on i686 is "expected"
+  make check || true
 }
 
 package() {
@@ -153,8 +136,8 @@ package() {
   install -dm755 ${pkgdir}/usr/lib/{locale,systemd/system,tmpfiles.d}
 
   install -m644 ${srcdir}/${pkgname}-${pkgver}/nscd/nscd.conf ${pkgdir}/etc/nscd.conf
-  install -m644 ${srcdir}/nscd.service ${pkgdir}/usr/lib/systemd/system
-  install -m644 ${srcdir}/nscd.tmpfiles ${pkgdir}/usr/lib/tmpfiles.d/nscd.conf
+  install -m644 ${srcdir}/${pkgname}-${pkgver}/nscd/nscd.service ${pkgdir}/usr/lib/systemd/system
+  install -m644 ${srcdir}/${pkgname}-${pkgver}/nscd/nscd.tmpfiles ${pkgdir}/usr/lib/tmpfiles.d/nscd.conf
 
   install -m644 ${srcdir}/${pkgname}-${pkgver}/posix/gai.conf ${pkgdir}/etc/gai.conf
 
@@ -166,8 +149,9 @@ package() {
     ${srcdir}/glibc-${pkgver}/localedata/SUPPORTED >> ${pkgdir}/etc/locale.gen
 
   # remove the static libraries that have a shared counterpart
-  # note: keep libc, libdl, libm, libpthread for binutils testsuite
-  rm $pkgdir/usr/lib/lib{anl,BrokenLocale,crypt,nsl,resolv,rt,util}.a
+  # libc, libdl, libm and libpthread are required for toolchain testsuites
+  # in addition libcrypt appears widely required
+  rm $pkgdir/usr/lib/lib{anl,BrokenLocale,nsl,resolv,rt,util}.a
 
   # ALARM: symlink ld-linux.so.3 for hard-float
   [[ $CARCH == "armv6h" || $CARCH == "armv7h" ]] && ln -s /lib/ld-${pkgver}.so ${pkgdir}/usr/lib/ld-linux.so.3

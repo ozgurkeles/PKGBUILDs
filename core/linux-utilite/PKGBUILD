@@ -2,28 +2,32 @@
 # Maintainer: Kevin Mihelich <kevin@archlinuxarm.org>
 
 buildarch=4
-
 pkgbase=linux-utilite
-_commit=5196fd6e067030eee20c8593548f349d3a2fca49
-_srcname=cm-fx6-kernel
+_commit=2944402791fd4643d3cfe84671015d442db0e512
+_srcname=utilite-${_commit}
 _kernelname=${pkgbase#linux}
-_desc="CompuLab Utilite"
+_desc="CompuLab Utilite alternate kernel"
 pkgver=3.0.35
-pkgrel=1
+pkgrel=16
 arch=('armv7h')
-url="https://github.com/kmihelich/linux-utilite"
+url="https://github.com/wolfgar/utilite/tree/devel"
 license=('GPL2')
 makedepends=('xmlto' 'docbook-xsl' 'kmod' 'inetutils' 'bc' 'uboot-mkimage')
 options=('!strip')
-source=("https://gitorious.org/cm-fx6/kernel/archive/${_commit}.tar.gz"
-        'config')
-md5sums=('fa0838752e923b0632c41581dba4c274'
-         'c7cc9b7e6ae5391f7710fd96e4e9bf92')
+source=("https://github.com/wolfgar/utilite/archive/${_commit}.tar.gz"
+        'config'
+        'https://raw.github.com/Freescale/meta-fsl-arm/46de5ee9dec3486c3e081f9f39ac1a0f967afd54/recipes-kernel/linux/linux-imx-3.0.35/ENGR00278350-gpu-viante-4.6.9p13-kernel-part-integra.patch')
+md5sums=('c6d8002e1521873fe3fca10414ce2fef'
+         '10ef3a2bc67d15b46f5ce9b20b689568'
+         '41941771adfed8b55574a7434d2c3393')
 
 prepare() {
   cd "${srcdir}/${_srcname}"
 
   cat "${srcdir}/config" > ./.config
+
+  # allow use of 3.10.17 gpu binaries
+  patch --ignore-whitespace -p1 < ../ENGR00278350-gpu-viante-4.6.9p13-kernel-part-integra.patch
 
   # add pkgrel to extraversion
   sed -ri "s|^(EXTRAVERSION =)(.*)|\1 \2-${pkgrel}|" Makefile
@@ -34,6 +38,8 @@ prepare() {
 
 build() {
   cd "${srcdir}/${_srcname}"
+
+  LDFLAGS=""
 
   # get kernel version
   make prepare
@@ -66,8 +72,8 @@ _package() {
   pkgdesc="The Linux Kernel and modules - ${_desc}"
   depends=('coreutils' 'linux-firmware' 'kmod' 'mkinitcpio>=0.7')
   optdepends=('crda: to set the correct wireless channels of your country')
-  provides=('kernel26' 'linux=${pkgver}' 'aufs_friendly')
-  conflicts=('linux-omap' 'linux-imx6' 'linux-armada370')
+  provides=('kernel26' "linux=${pkgver}")
+  conflicts=('linux')
   install=${pkgname}.install
 
   cd "${srcdir}/${_srcname}"
@@ -111,8 +117,8 @@ _package() {
 
 _package-headers() {
   pkgdesc="Header files and scripts for building modules for linux kernel - ${_desc}"
-  provides=('linux-headers=${pkgver}')
-  conflicts=('linux-headers-omap' 'linux-headers-imx6')
+  provides=("linux-headers=${pkgver}")
+  conflicts=('linux-headers')
 
   install -dm755 "${pkgdir}/usr/lib/modules/${_kernver}"
 
@@ -139,8 +145,8 @@ _package-headers() {
   cp -a arch/$KARCH/include ${pkgdir}/usr/src/linux-${_kernver}/arch/$KARCH/
 #  mkdir -p ${pkgdir}/usr/src/linux-${_kernver}/arch/$KARCH/mach-mx6
 #  cp -a arch/$KARCH/mach-mx6/include ${pkgdir}/usr/src/linux-${_kernver}/arch/$KARCH/mach-mx6/
-#  mkdir -p ${pkgdir}/usr/src/linux-${_kernver}/arch/$KARCH/plat-mxs
-#  cp -a arch/$KARCH/plat-mxs/include ${pkgdir}/usr/src/linux-${_kernver}/arch/$KARCH/plat-mxs/
+  mkdir -p ${pkgdir}/usr/src/linux-${_kernver}/arch/$KARCH/plat-mxc
+  cp -a arch/$KARCH/plat-mxc/include ${pkgdir}/usr/src/linux-${_kernver}/arch/$KARCH/plat-mxc/
 
   # copy files necessary for later builds, like nvidia and vmware
   cp Module.symvers "${pkgdir}/usr/src/linux-${_kernver}"

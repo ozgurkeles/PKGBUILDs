@@ -4,29 +4,34 @@
 
 # ALARM: Kevin Mihelich <kevin@archlinuxarm.org>
 #  - export flags for rpi
+#  - patch to not call vc_dispmanx_set_wl_buffer_in_use
 
 pkgname=weston
-pkgver=1.3.0
-pkgrel=1
+pkgver=1.5.0
+pkgrel=2
 pkgdesc='Reference implementation of a Wayland compositor'
 arch=('i686' 'x86_64')
 url='http://wayland.freedesktop.org'
 license=('MIT')
-options=(!libtool)
 depends=('libxkbcommon' 'libunwind' 'poppler-glib' 'mtdev' 'libxcursor' 'glu' 'pango' 'colord')
+[ "$CARCH" == 'armv6h' ] && makedepends=('raspberrypi-firmware')
 source=("http://wayland.freedesktop.org/releases/$pkgname-$pkgver.tar.xz")
-sha1sums=('670f95844d20dc87da579b6ac566388edc0bfa0c')
+sha1sums=('42939c536bcdfbd92edb5e51af76ce7f0a4c6ed7')
 
 build() {
 	cd $pkgname-$pkgver
 	if [ "$CARCH" == 'armv6h' ]; then
 		export RPI_BCM_HOST_LIBS="-L/opt/vc/lib"
 		export RPI_BCM_HOST_CFLAGS="-I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads -I/opt/vc/include/interface/vmcs_host/linux"
+		export WESTON_NATIVE_BACKEND="rpi-backend.so"
+		export RPI_COMPOSITOR_LIBS="-ludev -lmtdev -lbcm_host"
+		CONFIG='--disable-egl'
 	fi
 	./configure \
 		--prefix=/usr \
 		--libexecdir=/usr/lib/weston \
-		--enable-demo-clients
+		--with-cairo=gl \
+		--enable-demo-clients-install $CONFIG
 	make
 }
 

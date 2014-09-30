@@ -4,41 +4,73 @@
 # ALARM: Kevin Mihelich <kevin@archlinuxarm.org>
 #  - use linux-armv4 target for our architectures
 #  - cryptodev-enabled version
+#
+#	moonman <moonman [dot] ca [at] gmail [dot] com>
+#  - get cryptodev.h from cryptodev tarball instead of the kernel headers
+#  - patches from cryptodev developers for openssl
 
-noautobuild=1
 buildarch=6
 
 pkgname=openssl-cryptodev
 _pkgname=openssl
-_ver=1.0.1e
+_ver=1.0.1i
 # use a pacman compatible version scheme
 pkgver=${_ver/[a-z]/.${_ver//[0-9.]/}}
 #pkgver=$_ver
-pkgrel=3
+pkgrel=1
 pkgdesc='The Open Source toolkit for Secure Sockets Layer and Transport Layer Security'
 arch=('arm' 'armv7h')
 url='https://www.openssl.org'
 license=('custom:BSD')
 depends=('perl')
-if [ "${CARCH}" == 'armv7h' ]; then
-	makedepends=('linux-headers-cubox')
-else
-	makedepends=('linux-headers-kirkwood')
-fi
 optdepends=('ca-certificates')
 options=('!makeflags')
 backup=('etc/ssl/openssl.cnf')
 conflicts=('openssl')
 provides=("openssl=${pkgver}")
+_cryptover=1.6
+
 source=("https://www.openssl.org/source/${_pkgname}-${_ver}.tar.gz"
         'no-rpath.patch'
-        'ca-dir.patch')
-md5sums=('66bf6f10f060d561929de96f9dfe5b8c'
+        'ca-dir.patch'
+        "http://download.gna.org/cryptodev-linux/cryptodev-linux-${_cryptover}.tar.gz"
+	"https://github.com/openssl/openssl/commit/be2c4d9bd9e81030c547a34216ae2d8e5c888190.patch"
+	"https://github.com/openssl/openssl/commit/6ecbc2bb62835a401ad6efe240d469a23b21755b.patch"
+        '0001-cryptodev-Fix-issue-with-signature-generation.patch'
+        '0002-cryptodev-allow-copying-EVP-contexts.patch')
+
+md5sums=('c8dc151a671b9b92ff3e4c118b174972'
          'dc78d3d06baffc16217519242ce92478'
-         '3bf51be3a1bbd262be46dc619f92aa90')
+         '3bf51be3a1bbd262be46dc619f92aa90'
+         'eade38998313c25fd7934719cdf8a2ea'
+         '16b054368f5b956e69944ce9903188de'
+         '600a5a67dbdc9a26ab382ea9bf09a416'
+         '440f706c63735f32274e13325557a331'
+         'e8ec495c49ae2494acbfb47d98c363b6')
+
+prepare() {
+        cd $srcdir/${_pkgname}-$_ver
+
+        # remove rpath: http://bugs.archlinux.org/task/14367
+        patch -p0 -i $srcdir/no-rpath.patch
+        # set ca dir to /etc/ssl by default
+        patch -p0 -i $srcdir/ca-dir.patch
+
+	msg "Bring eng_cryptodev.c up-to-date for the following 2 patches"
+	patch -Np1 -i $srcdir/be2c4d9bd9e81030c547a34216ae2d8e5c888190.patch
+	patch -Np1 -i $srcdir/6ecbc2bb62835a401ad6efe240d469a23b21755b.patch
+
+        msg2 "Patch eng_cryptodev.c"
+        patch -p1 -i $srcdir/0001-cryptodev-Fix-issue-with-signature-generation.patch
+        patch -p1 -i $srcdir/0002-cryptodev-allow-copying-EVP-contexts.patch
+
+        # Copy the header file
+        cp -u ${srcdir}/cryptodev-linux-${_cryptover}/crypto/cryptodev.h ${srcdir}/openssl-${_ver}/crypto/
+
+}
 
 build() {
-	cd $srcdir/$_pkgname-$_ver
+	cd $srcdir/${_pkgname}-$_ver
 
 	if [ "${CARCH}" == 'x86_64' ]; then
 		openssltarget='linux-x86_64'
@@ -48,23 +80,12 @@ build() {
 		openssltarget='linux-armv4'
 	fi
 
-	if [ "${CARCH}" == 'armv7h' ]; then
-		_kernel_release="$(pacman -Q linux-headers-cubox | grep -Eo "[^\ ]+$")-ARCH+"
-	else
-		_kernel_release="$(pacman -Q linux-headers-kirkwood | grep -Eo "[^\ ]+$")-ARCH"
-	fi
-
-	# remove rpath: http://bugs.archlinux.org/task/14367
-	patch -p0 -i $srcdir/no-rpath.patch
-	# set ca dir to /etc/ssl by default
-	patch -p0 -i $srcdir/ca-dir.patch
-
 	# mark stack as non-executable: http://bugs.archlinux.org/task/12434
 	./Configure --prefix=/usr --openssldir=/etc/ssl --libdir=lib \
 		-DHAVE_CRYPTODEV -DUSE_CRYPTODEV_DIGESTS -DHASH_MAX_LEN=64 \
 		shared threads zlib \
 		"${openssltarget}" \
-		-Wa,--noexecstack "${CFLAGS} -I/usr/src/linux-${_kernel_release}"
+		"-Wa,--noexecstack ${CPPFLAGS} ${CFLAGS} ${LDFLAGS}"
 
 	make depend
 	make
@@ -75,7 +96,7 @@ check() {
 	# the test fails due to missing write permissions in /etc/ssl
 	# revert this patch for make test
 	patch -p0 -R -i $srcdir/ca-dir.patch
-#	make test
+	make test
 	patch -p0 -i $srcdir/ca-dir.patch
 }
 

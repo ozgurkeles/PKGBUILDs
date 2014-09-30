@@ -8,8 +8,8 @@
 #  - added --enable-arm-neon=no to configure
 
 pkgname=libpng
-pkgver=1.6.5
-_apngver=1.6.3
+pkgver=1.6.13
+_apngver=1.6.13
 pkgrel=1
 pkgdesc="A collection of routines used to create PNG format graphics files"
 arch=('i686' 'x86_64')
@@ -19,14 +19,14 @@ depends=('zlib' 'sh')
 options=('!libtool')
 source=(http://downloads.sourceforge.net/sourceforge/$pkgname/$pkgname-$pkgver.tar.xz{,.asc}
         http://downloads.sourceforge.net/sourceforge/libpng-apng/libpng-$_apngver-apng.patch.gz)
-md5sums=('dec292dd99b094cea03bdd7232f5a80c'
+md5sums=('9822c25466f060142359f80ed142c9e5'
          'SKIP'
-         '57007fc121baa2cdc48abcfb26300e78')
+         '1ecbf7811d6da8a35ad7d4485df2290a')
 
 prepare() {
   cd $pkgname-$pkgver
 
-  # Add animated PNG (apng) support
+  # Add animated PNG (apng) support. Required by Firefox
   # see http://sourceforge.net/projects/libpng-apng/
   patch -Np1 -i ../libpng-$_apngver-apng.patch
 }
@@ -34,7 +34,7 @@ prepare() {
 build() {
   cd $pkgname-$pkgver
 
-  ./configure --prefix=/usr --enable-arm-neon=no
+  ./configure --prefix=/usr --enable-arm-neon=no --disable-static
   make
 }
 
